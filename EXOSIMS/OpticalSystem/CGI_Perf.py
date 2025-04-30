@@ -4,6 +4,7 @@ import warnings
 import astropy.units as u
 import numpy as np
 from scipy import interpolate
+import pandas as pd
 
 from EXOSIMS.OpticalSystem.Nemati import Nemati
 
@@ -69,12 +70,52 @@ class CGI_Perf(Nemati):
             "ContrastScenario": ContrastScenario,
         }
 
+        misc_path = os.path.join("EBcsvData", "Operational Parameters", "CONST_SNR_misc.csv")
+        MiscSNR = pd.read_csv(misc_path)
+
+        self.magLocalZodi = pd.to_numeric(MiscSNR.df.at[0,'LocalZodi_mag_per_sq_arcsec'])
+        # exoZodi at 1 AU assumed for a star with the same absolute mag as Sun
+        self.magExoZodi_1AU = MiscSNR.df.at[0,'ExoZodi_at1AU_mag_per_sq_arcsec'] 
+        
+        self.DarkCurrent_adjust = MiscSNR.df.loc[0,'DarkCurrent_adjust']
+        self.CIC_adjust = MiscSNR.df.loc[0,'CIC_adjust']
+        self.QE_adjust  = MiscSNR.df.loc[0,'QE_adjust']
+        self.SNR_for_NEFR = MiscSNR.df.loc[0, 'SNR_for_NEFR']
+        self.Channels_per_iter = MiscSNR.df.loc[0, 'Channels_per_iter']
+        self.Probes_per_Channel = MiscSNR.df.loc[0, 'Probes_per_Channel']
+        self.Bandwidth_per_Channel = MiscSNR.df.loc[0, 'Bandwidth_per_Channel']
+        self.DarkHole_Contrast = MiscSNR.df.loc[0,'DarkHole_Contrast']
+        self.ComparisonTime_sec = MiscSNR.df.loc[0,'ComparisonTime_sec']
+        
+        self.FWC_gr = MiscSNR.df.loc[0,'SerialFullWellCapacity_electrons']
+        self.ENF_for_Analog = MiscSNR.df.loc[0,'ENF_for_Analog']
+        self.DPM = MiscSNR.df.loc[0,'PrimaryMirrorDiameter_m']
+        self.thpt_t_PSFnominal = MiscSNR.df.loc[0,'Thput_t_psf_nominal']
+        self.k_comp = MiscSNR.df.at[0,'Speckle_Enhancement'] 
+        self.timeOnRef = MiscSNR.df.loc[0,'TimeonRefStar_tRef_per_tTar']
+        self.RefStarSpecType = str(MiscSNR.df.loc[0,'RefStar_SpectralType'])
+        self.RefStarVmag_CBE = MiscSNR.df.loc[0,'RefStar_V_mag_CBE']
+        self.RefStarDist = MiscSNR.df.loc[0,'RefStar_Distance_pc']
+        self.RefStarExoZodi = MiscSNR.df.loc[0,'RefStar_ExoZodi_Xsolar']
+        self.RefStarVmag_req = MiscSNR.df.loc[0,'RefStar_V_mag_REQ']
+
+
         # call upstream init
         Nemati.__init__(self, **specs)
 
         # add local defaults to outspec
         for k in self.default_vals_extra2:
             self._outspec[k] = self.default_vals_extra2[k]
+
+        global_keys = ["magLocalZodi" , "magExoZodi_1AU", "DarkCurrent_adjust", "CIC_adjust", "QE_adjust",
+                       "SNR_for_NEFR", "Channels_per_iter", "Probes_per_Channel", "Bandwidth_per_Channel",
+                       "DarkHole_Contrast", "ComparisonTime_sec", "FWC_gr", "ENF_for_Analog",
+                       "DPM", "thpt_t_PSFnominal", "k_comp", "timeOnRef",  "RefStarSpecType",
+                       "RefStarVmag_CBE", "RefStarDist", "RefStarExoZodi", "RefStarVmag_req"]
+        
+        for key in global_keys:
+            if key not in self._outspec:
+                self._outspec[key] = getattr(self, key)
 
         # If amici-spec, load Disturb x Sens Tables
         # DELETE amici_mode = [self.observingModes[i] for i in
@@ -262,6 +303,12 @@ class CGI_Perf(Nemati):
             "lam_d",  # design wavelength
             "lam_c",  # critical wavelength
             "MUF_thruput",  # core model uncertainty throughput
+            "intTimeDutyFactor",
+            "magLocalZodi" , "magExoZodi_1AU", "DarkCurrent_adjust", "CIC_adjust", "QE_adjust",
+            "SNR_for_NEFR", "Channels_per_iter", "Probes_per_Channel", "Bandwidth_per_Channel",
+            "DarkHole_Contrast", "ComparisonTime_sec", "FWC_gr", "ENF_for_Analog",
+            "DPM", "thpt_t_PSFnominal", "k_comp", "timeOnRef",  "RefStarSpecType",
+            "RefStarVmag_CBE", "RefStarDist", "RefStarExoZodi", "RefStarVmag_req",
         ]
         self.allowed_scienceInstrument_kws += newatts
 
@@ -286,7 +333,6 @@ class CGI_Perf(Nemati):
 
         super().populate_observingModes_extra()
         self.allowed_observingMode_kws.append("ContrastScenario")
-        self.allowed_observingMode_kws.append("intTimeDutyFactor")  # integration time duty cycle
 
         for nmode, mode in enumerate(self.observingModes):
             mode["ContrastScenario"] = mode.get(
