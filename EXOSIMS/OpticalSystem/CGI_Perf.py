@@ -77,27 +77,27 @@ class CGI_Perf(Nemati):
         # exoZodi at 1 AU assumed for a star with the same absolute mag as Sun
         self.magExoZodi_1AU = MiscSNR.df.at[0,'ExoZodi_at1AU_mag_per_sq_arcsec'] 
         
-        self.DarkCurrent_adjust = MiscSNR.df.loc[0,'DarkCurrent_adjust']
-        self.CIC_adjust = MiscSNR.df.loc[0,'CIC_adjust']
-        self.QE_adjust  = MiscSNR.df.loc[0,'QE_adjust']
-        self.SNR_for_NEFR = MiscSNR.df.loc[0, 'SNR_for_NEFR']
-        self.Channels_per_iter = MiscSNR.df.loc[0, 'Channels_per_iter']
-        self.Probes_per_Channel = MiscSNR.df.loc[0, 'Probes_per_Channel']
-        self.Bandwidth_per_Channel = MiscSNR.df.loc[0, 'Bandwidth_per_Channel']
-        self.DarkHole_Contrast = MiscSNR.df.loc[0,'DarkHole_Contrast']
-        self.ComparisonTime_sec = MiscSNR.df.loc[0,'ComparisonTime_sec']
+        self.DarkCurrent_adjust = MiscSNR.loc[0,'DarkCurrent_adjust']
+        self.CIC_adjust = MiscSNR.loc[0,'CIC_adjust']
+        self.QE_adjust  = MiscSNR.loc[0,'QE_adjust']
+        self.SNR_for_NEFR = MiscSNR.loc[0, 'SNR_for_NEFR']
+        self.Channels_per_iter = MiscSNR.loc[0, 'Channels_per_iter']
+        self.Probes_per_Channel = MiscSNR.loc[0, 'Probes_per_Channel']
+        self.Bandwidth_per_Channel = MiscSNR.loc[0, 'Bandwidth_per_Channel']
+        self.DarkHole_Contrast = MiscSNR.loc[0,'DarkHole_Contrast']
+        self.ComparisonTime_sec = MiscSNR.loc[0,'ComparisonTime_sec']
         
-        self.FWC_gr = MiscSNR.df.loc[0,'SerialFullWellCapacity_electrons']
-        self.ENF_for_Analog = MiscSNR.df.loc[0,'ENF_for_Analog']
-        self.DPM = MiscSNR.df.loc[0,'PrimaryMirrorDiameter_m']
-        self.thpt_t_PSFnominal = MiscSNR.df.loc[0,'Thput_t_psf_nominal']
-        self.k_comp = MiscSNR.df.at[0,'Speckle_Enhancement'] 
-        self.timeOnRef = MiscSNR.df.loc[0,'TimeonRefStar_tRef_per_tTar']
-        self.RefStarSpecType = str(MiscSNR.df.loc[0,'RefStar_SpectralType'])
-        self.RefStarVmag_CBE = MiscSNR.df.loc[0,'RefStar_V_mag_CBE']
-        self.RefStarDist = MiscSNR.df.loc[0,'RefStar_Distance_pc']
-        self.RefStarExoZodi = MiscSNR.df.loc[0,'RefStar_ExoZodi_Xsolar']
-        self.RefStarVmag_req = MiscSNR.df.loc[0,'RefStar_V_mag_REQ']
+        self.FWC_gr = MiscSNR.loc[0,'SerialFullWellCapacity_electrons']
+        self.ENF_for_Analog = MiscSNR.loc[0,'ENF_for_Analog']
+        self.DPM = MiscSNR.loc[0,'PrimaryMirrorDiameter_m']
+        self.thpt_t_PSFnominal = MiscSNR.loc[0,'Thput_t_psf_nominal']
+        self.k_comp = MiscSNR.at[0,'Speckle_Enhancement'] 
+        self.timeOnRef = MiscSNR.loc[0,'TimeonRefStar_tRef_per_tTar']
+        self.RefStarSpecType = str(MiscSNR.loc[0,'RefStar_SpectralType'])
+        self.RefStarVmag_CBE = MiscSNR.loc[0,'RefStar_V_mag_CBE']
+        self.RefStarDist = MiscSNR.loc[0,'RefStar_Distance_pc']
+        self.RefStarExoZodi = MiscSNR.loc[0,'RefStar_ExoZodi_Xsolar']
+        self.RefStarVmag_req = MiscSNR.loc[0,'RefStar_V_mag_REQ']
 
 
         # call upstream init
