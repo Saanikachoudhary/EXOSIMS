@@ -37,6 +37,8 @@ class CGI_Perf(Nemati):
         intTimeDutyFactor (float):
             Duty cycle efficiency of integration time (e.g., accounting for readout/reset).
             Should be between 0 and 1. Defaults to 1.0 (perfect efficiency).
+        MiscSNR_path:
+            path to miscellaneous file
         **specs:
             :ref:`sec:inputspec`
 
@@ -56,9 +58,12 @@ class CGI_Perf(Nemati):
         lam_c=500,
         MUF_thruput=0.91,
         intTimeDutyFactor=1.0,
+        miscSNR_path=None,
         ContrastScenario="CGDesignPerf",
         **specs,
     ):
+        assert miscSNR_path is not None, "Must provide `miscSNR_path`"
+
         # package up input defaults for later use:
         self.default_vals_extra2 = {
             "k_samp": k_samp,
@@ -67,15 +72,11 @@ class CGI_Perf(Nemati):
             "lam_c": lam_c,
             "MUF_thruput": MUF_thruput,
             "intTimeDutyFactor": intTimeDutyFactor,
+            "miscSNR_path": miscSNR_path,
             "ContrastScenario": ContrastScenario,
         }
 
-        misc_path = os.path.join("EBcsvData", "Operational Parameters", "CONST_SNR_misc.csv")
-        MiscSNR = pd.read_csv(misc_path)
-
-        self.magLocalZodi = pd.to_numeric(MiscSNR.df.at[0,'LocalZodi_mag_per_sq_arcsec'])
-        # exoZodi at 1 AU assumed for a star with the same absolute mag as Sun
-        self.magExoZodi_1AU = MiscSNR.df.at[0,'ExoZodi_at1AU_mag_per_sq_arcsec'] 
+        MiscSNR = pd.read_csv(miscSNR_path)
         
         self.DarkCurrent_adjust = MiscSNR.loc[0,'DarkCurrent_adjust']
         self.CIC_adjust = MiscSNR.loc[0,'CIC_adjust']
@@ -88,11 +89,8 @@ class CGI_Perf(Nemati):
         self.ComparisonTime_sec = MiscSNR.loc[0,'ComparisonTime_sec']
         
         self.FWC_gr = MiscSNR.loc[0,'SerialFullWellCapacity_electrons']
-        self.ENF_for_Analog = MiscSNR.loc[0,'ENF_for_Analog']
-        self.DPM = MiscSNR.loc[0,'PrimaryMirrorDiameter_m']
         self.thpt_t_PSFnominal = MiscSNR.loc[0,'Thput_t_psf_nominal']
         self.k_comp = MiscSNR.at[0,'Speckle_Enhancement'] 
-        self.timeOnRef = MiscSNR.loc[0,'TimeonRefStar_tRef_per_tTar']
         self.RefStarSpecType = str(MiscSNR.loc[0,'RefStar_SpectralType'])
         self.RefStarVmag_CBE = MiscSNR.loc[0,'RefStar_V_mag_CBE']
         self.RefStarDist = MiscSNR.loc[0,'RefStar_Distance_pc']
@@ -107,7 +105,7 @@ class CGI_Perf(Nemati):
         for k in self.default_vals_extra2:
             self._outspec[k] = self.default_vals_extra2[k]
 
-        global_keys = ["magLocalZodi" , "magExoZodi_1AU", "DarkCurrent_adjust", "CIC_adjust", "QE_adjust",
+        global_keys = ["miscSNR_path" , "magLocalZodi" , "magExoZodi_1AU", "DarkCurrent_adjust", "CIC_adjust", "QE_adjust",
                        "SNR_for_NEFR", "Channels_per_iter", "Probes_per_Channel", "Bandwidth_per_Channel",
                        "DarkHole_Contrast", "ComparisonTime_sec", "FWC_gr", "ENF_for_Analog",
                        "DPM", "thpt_t_PSFnominal", "k_comp", "timeOnRef",  "RefStarSpecType",
@@ -131,166 +129,6 @@ class CGI_Perf(Nemati):
             for i in np.arange(len(self.observingModes))
             if "ContrastScenario" in self.observingModes[i].keys()
         ]
-        if np.any(
-            np.asarray(ContrastScenario) == "DisturbXSens"
-        ):  # DELETElen(amici_mode) > 0:
-            import csv
-
-            # find index of amici_mode
-            # DELETE amici_mode_index = [i for i in np.arange(len(self.observingModes))
-            #                            if self.observingModes[i]['instName'] ==
-            #                           'amici-spec'][0]
-            # take first amici-spec instName found
-            amici_mode_index = [
-                i
-                for i in ContrastScenarioIndex
-                if self.observingModes[i]["ContrastScenario"] == "DisturbXSens"
-            ][0]
-
-            # Specifically for the Disturb X Sens observing mode
-            # (STILL NOT SURE HOW TO DECIDED IT IS DISTURB X SENS MODE)
-
-            def extractedCSVTable(fname):
-                """
-                Args:
-                    fname (string):
-                        Full filepath to the the csv file
-
-                Returns:
-                    ~numpy.ndarray:
-                        2D array of table values [row,col]
-                """
-                tList = list()
-                with open(fname, newline="") as f:
-                    csvreader = csv.reader(f, delimiter=",")
-                    for row in csvreader:
-                        trow = list()
-                        for i in np.arange(len(row)):
-                            if row[i] == "":
-                                continue
-                            else:
-                                trow.append(float(row[i]))
-                        tList.append(trow)
-                return np.asarray(tList)
-
-            # LOAD IN Disturbance Table from Disturbance Tab in Bijan2019 spreadsheet
-            # I copied Disturbance!H6-U1181 to a text file and converted the range
-            # into CSV
-            fname = self.observingModes[amici_mode_index][
-                "DisturbXSens_DisturbanceTable"
-            ]
-
-            self.observingModes[amici_mode_index]["DisturbXSens_DisturbanceTable"] = (
-                extractedCSVTable(fname)
-            )  # Disturbance table on the Disturbance Sheet in Bijan2019 model
-            self.observingModes[amici_mode_index]["DisturbanceCases"] = [
-                "rqt10hr",
-                "rqt10hr_1mas",
-                "rqt171012",
-                "live",
-                "rqt10hr171212",
-                "rqt40hr171212",
-                "rqt10hr171221",
-                "rqt40hr171221",
-                "cbe10hr171221",
-                "rqt10hr180109",
-                "rqt40hr180109",
-                "cbe10hr180109",
-                "cbe10hr180130",
-                "cbe10hr180306",
-            ]  # Disturbance!H4-U4
-
-            # observingModes[amici_mode_index]['DisturbXSens_DisturbanceTableColumnLabels'][0] # noqa: E501
-            # refers to:
-            # observingModes[amici_mode_index]['DisturbXSens_DisturbanceTable'][:,0]
-
-            fname2 = self.observingModes[amici_mode_index][
-                "DisturbXSens_DisturbanceLiveSTD_MUF_Table"
-            ]  # .csv #From DisturbanceLive!B4-AC24
-            self.observingModes[amici_mode_index][
-                "DisturbXSens_DisturbanceLiveSTD_MUF_Table"
-            ] = extractedCSVTable(fname2)
-            fname3 = self.observingModes[amici_mode_index][
-                "DisturbXSens_DisturbanceLiveUNITY_MUF_Table"
-            ]  # .csv #From DisturbanceLive!B29-AC49
-            self.observingModes[amici_mode_index][
-                "DisturbXSens_DisturbanceLiveUNITY_MUF_Table"
-            ] = extractedCSVTable(fname3)
-            # DisturbanceLive!$AL is the column-wise interpretation of
-            # DisturbXSens_DisturbanceLiveSTD_MUF_Table
-            self.observingModes[amici_mode_index]["DisturbXSens_DisturbanceTable"][
-                :, 3
-            ] = np.concatenate(
-                (
-                    self.observingModes[amici_mode_index][
-                        "DisturbXSens_DisturbanceLiveSTD_MUF_Table"
-                    ].flatten(),
-                    self.observingModes[amici_mode_index][
-                        "DisturbXSens_DisturbanceLiveUNITY_MUF_Table"
-                    ].flatten(),
-                )
-            )
-            # The Disturbance Table starting at CStability!U40 references the
-            # DisturbXSens_DisturbanceTable
-
-            # Load Sensitivity MUF Table
-            fname4 = self.observingModes[amici_mode_index][
-                "DisturbXSens_SensitivityMUF"
-            ]  # .csv #From SensitivityMUF!C3-G23
-            self.observingModes[amici_mode_index]["DisturbXSens_SensitivityMUF"] = (
-                extractedCSVTable(fname4)
-            )
-            # Index Labels of Sensitivity MUF Table Columns
-            # KEEPself.observingModes[amici_mode_index]['SensitivityCases'] =
-            # ['Standard', 'Unity', 'MUF_o1', 'MUF_o2', 'MUF_o3']
-            # MUFcases, SensitivityMUF!C1-G1
-            # Case used for this mode
-            # self.observingModes[amici_mode_index]['DisturbanceCase']
-
-            # Load Contrast Sensitivity Vectors Table from Sensitivities Tab
-            fname5 = self.observingModes[amici_mode_index][
-                "DisturbXSens_ContrastSensitivityVectorsTable"
-            ]  # .csv #From Sensitivities!D5-P109
-            self.observingModes[amici_mode_index][
-                "DisturbXSens_ContrastSensitivityVectorsTable"
-            ] = extractedCSVTable(
-                fname5
-            )  # DisturbXSens_ContrastSensitivityVectorsTable.csv
-            # Column labels of the ContrastVectorsTable
-            self.observingModes[amici_mode_index][
-                "DisturbXSens_ContrastSensitivityVectorsColLabels"
-            ]  # Sensitivities!D4-P4
-
-            # Load Annular Zone Master Table
-            fname6 = self.observingModes[amici_mode_index][
-                "DisturbXSens_AnnZoneMasterTable"
-            ]  # .csv #From AnnZoneList!C2-O11
-            self.observingModes[amici_mode_index]["DisturbXSens_AnnZoneMasterTable"] = (
-                extractedCSVTable(fname6)
-            )  # DisturbXSens_AnnZoneMasterTable.csv
-
-            # Load Initial Raw Contrast Table
-            fname7 = self.observingModes[amici_mode_index][
-                "DisturbXSens_InitialRawContrastTable"
-            ]  # .csv #From InitialRawContrast!E2-Q21
-            self.observingModes[amici_mode_index][
-                "DisturbXSens_InitialRawContrastTable"
-            ] = extractedCSVTable(
-                fname7
-            )  # DisturbXSens_InitialRawContrast.csv
-            # self.observingModes[amici_mode_index]['DisturbXSens_InitialRawContrastCols']
-
-            # Load NItoContrast Table
-            fname8 = self.observingModes[amici_mode_index][
-                "DisturbXSens_NItoContrastTable"
-            ]  # .csv #From NItoContrast!B2-N6 #DisturbXSens_NItoContrastTable.csv
-            self.observingModes[amici_mode_index]["DisturbXSens_NItoContrastTable"] = (
-                extractedCSVTable(fname8)
-            )  # DisturbXSens_NItoContrastTable.csv
-
-            # self.observingModes[amici_mode_index]['DisturbXSens_DisturbanceTable']
-
-        # print(saltyburrito)
 
     def populate_scienceInstruments_extra(self):
         """Add Nemati_2019-specific keywords to scienceInstruments"""
@@ -304,7 +142,7 @@ class CGI_Perf(Nemati):
             "lam_c",  # critical wavelength
             "MUF_thruput",  # core model uncertainty throughput
             "intTimeDutyFactor",
-            "magLocalZodi" , "magExoZodi_1AU", "DarkCurrent_adjust", "CIC_adjust", "QE_adjust",
+            "miscSNR_path","magLocalZodi" , "magExoZodi_1AU", "DarkCurrent_adjust", "CIC_adjust", "QE_adjust",
             "SNR_for_NEFR", "Channels_per_iter", "Probes_per_Channel", "Bandwidth_per_Channel",
             "DarkHole_Contrast", "ComparisonTime_sec", "FWC_gr", "ENF_for_Analog",
             "DPM", "thpt_t_PSFnominal", "k_comp", "timeOnRef",  "RefStarSpecType",
