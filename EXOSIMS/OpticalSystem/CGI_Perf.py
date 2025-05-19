@@ -105,10 +105,10 @@ class CGI_Perf(Nemati):
         for k in self.default_vals_extra2:
             self._outspec[k] = self.default_vals_extra2[k]
 
-        global_keys = ["miscSNR_path" , "magLocalZodi" , "magExoZodi_1AU", "DarkCurrent_adjust", "CIC_adjust", "QE_adjust",
+        global_keys = ["miscSNR_path", "DarkCurrent_adjust", "CIC_adjust", "QE_adjust",
                        "SNR_for_NEFR", "Channels_per_iter", "Probes_per_Channel", "Bandwidth_per_Channel",
-                       "DarkHole_Contrast", "ComparisonTime_sec", "FWC_gr", "ENF_for_Analog",
-                       "DPM", "thpt_t_PSFnominal", "k_comp", "timeOnRef",  "RefStarSpecType",
+                       "DarkHole_Contrast", "ComparisonTime_sec", "FWC_gr",
+                       "thpt_t_PSFnominal", "k_comp", "RefStarSpecType",
                        "RefStarVmag_CBE", "RefStarDist", "RefStarExoZodi", "RefStarVmag_req"]
         
         for key in global_keys:
@@ -142,10 +142,10 @@ class CGI_Perf(Nemati):
             "lam_c",  # critical wavelength
             "MUF_thruput",  # core model uncertainty throughput
             "intTimeDutyFactor",
-            "miscSNR_path","magLocalZodi" , "magExoZodi_1AU", "DarkCurrent_adjust", "CIC_adjust", "QE_adjust",
+            "miscSNR_path", "DarkCurrent_adjust", "CIC_adjust", "QE_adjust",
             "SNR_for_NEFR", "Channels_per_iter", "Probes_per_Channel", "Bandwidth_per_Channel",
-            "DarkHole_Contrast", "ComparisonTime_sec", "FWC_gr", "ENF_for_Analog",
-            "DPM", "thpt_t_PSFnominal", "k_comp", "timeOnRef",  "RefStarSpecType",
+            "DarkHole_Contrast", "ComparisonTime_sec", "FWC_gr",
+            "thpt_t_PSFnominal", "k_comp", "RefStarSpecType",
             "RefStarVmag_CBE", "RefStarDist", "RefStarExoZodi", "RefStarVmag_req",
         ]
         self.allowed_scienceInstrument_kws += newatts
