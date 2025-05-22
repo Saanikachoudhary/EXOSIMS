@@ -76,7 +76,8 @@ class CGI_Perf(Nemati):
             "ContrastScenario": ContrastScenario,
         }
 
-        MiscSNR = pd.read_csv(miscSNR_path)
+        MiscSNR = pd.read_csv(miscSNR_path, nrows=1)
+        MiscSNR.columns = MiscSNR.columns.str.strip()  # ← FIXES IT
         
         self.DarkCurrent_adjust = MiscSNR.loc[0,'DarkCurrent_adjust']
         self.CIC_adjust = MiscSNR.loc[0,'CIC_adjust']
@@ -91,12 +92,32 @@ class CGI_Perf(Nemati):
         self.FWC_gr = MiscSNR.loc[0,'SerialFullWellCapacity_electrons']
         self.thpt_t_PSFnominal = MiscSNR.loc[0,'Thput_t_psf_nominal']
         self.k_comp = MiscSNR.at[0,'Speckle_Enhancement'] 
-        self.RefStarSpecType = str(MiscSNR.loc[0,'RefStar_SpectralType'])
+        # self.RefStarSpecType = str(MiscSNR.loc[0,'RefStar_SpectralType'])
         self.RefStarVmag_CBE = MiscSNR.loc[0,'RefStar_V_mag_CBE']
         self.RefStarDist = MiscSNR.loc[0,'RefStar_Distance_pc']
         self.RefStarExoZodi = MiscSNR.loc[0,'RefStar_ExoZodi_Xsolar']
         self.RefStarVmag_req = MiscSNR.loc[0,'RefStar_V_mag_REQ']
 
+
+        self.default_vals_extra2.update({
+            "DarkCurrent_adjust": self.DarkCurrent_adjust,
+            "CIC_adjust": self.CIC_adjust,
+            "QE_adjust": self.QE_adjust,
+            "SNR_for_NEFR": self.SNR_for_NEFR,
+            "Channels_per_iter": self.Channels_per_iter,
+            "Probes_per_Channel": self.Probes_per_Channel,
+            "Bandwidth_per_Channel": self.Bandwidth_per_Channel,
+            "DarkHole_Contrast": self.DarkHole_Contrast,
+            "ComparisonTime_sec": self.ComparisonTime_sec,
+            "FWC_gr": self.FWC_gr,
+            "thpt_t_PSFnominal": self.thpt_t_PSFnominal,
+            "k_comp": self.k_comp,
+            # "RefStarSpecType": self.RefStarSpecType,
+            "RefStarVmag_CBE": self.RefStarVmag_CBE,
+            "RefStarDist": self.RefStarDist,
+            "RefStarExoZodi": self.RefStarExoZodi,
+            "RefStarVmag_req": self.RefStarVmag_req,
+        })
 
         # call upstream init
         Nemati.__init__(self, **specs)
@@ -105,15 +126,15 @@ class CGI_Perf(Nemati):
         for k in self.default_vals_extra2:
             self._outspec[k] = self.default_vals_extra2[k]
 
-        global_keys = ["miscSNR_path", "DarkCurrent_adjust", "CIC_adjust", "QE_adjust",
-                       "SNR_for_NEFR", "Channels_per_iter", "Probes_per_Channel", "Bandwidth_per_Channel",
-                       "DarkHole_Contrast", "ComparisonTime_sec", "FWC_gr",
-                       "thpt_t_PSFnominal", "k_comp", "RefStarSpecType",
-                       "RefStarVmag_CBE", "RefStarDist", "RefStarExoZodi", "RefStarVmag_req"]
+        # global_keys = ["miscSNR_path", "DarkCurrent_adjust", "CIC_adjust", "QE_adjust",
+        #                "SNR_for_NEFR", "Channels_per_iter", "Probes_per_Channel", "Bandwidth_per_Channel",
+        #                "DarkHole_Contrast", "ComparisonTime_sec", "FWC_gr",
+        #                "thpt_t_PSFnominal", "k_comp", "RefStarSpecType",
+        #                "RefStarVmag_CBE", "RefStarDist", "RefStarExoZodi", "RefStarVmag_req"]
         
-        for key in global_keys:
-            if key not in self._outspec:
-                self._outspec[key] = getattr(self, key)
+        # for key in global_keys:
+        #     if key not in self._outspec:
+        #         self._outspec[key] = getattr(self, key)
 
         # If amici-spec, load Disturb x Sens Tables
         # DELETE amici_mode = [self.observingModes[i] for i in
@@ -142,10 +163,10 @@ class CGI_Perf(Nemati):
             "lam_c",  # critical wavelength
             "MUF_thruput",  # core model uncertainty throughput
             "intTimeDutyFactor",
-            "miscSNR_path", "DarkCurrent_adjust", "CIC_adjust", "QE_adjust",
+            "DarkCurrent_adjust", "CIC_adjust", "QE_adjust",
             "SNR_for_NEFR", "Channels_per_iter", "Probes_per_Channel", "Bandwidth_per_Channel",
             "DarkHole_Contrast", "ComparisonTime_sec", "FWC_gr",
-            "thpt_t_PSFnominal", "k_comp", "RefStarSpecType",
+            "thpt_t_PSFnominal", "k_comp",
             "RefStarVmag_CBE", "RefStarDist", "RefStarExoZodi", "RefStarVmag_req",
         ]
         self.allowed_scienceInstrument_kws += newatts
