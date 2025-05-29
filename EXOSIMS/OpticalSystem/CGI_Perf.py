@@ -1125,3 +1125,79 @@ class CGI_Perf(Nemati):
                 header_location = np.where(csv_headers == header)[0][0]
                 return_vals.append(csv_vals[:, header_location])
         return return_vals
+    
+    def Cp_Cb_Csp(self, TL, sInds, fZ, JEZ, dMag, WA, mode, returnExtra=False, TK=None):
+        """Calculates electron count rates for planet signal, background noise,
+        and speckle residuals.
+
+        Args:
+            TL (:ref:`TargetList`):
+                TargetList class object
+            sInds (~numpy.ndarray(int)):
+                Integer indices of the stars of interest
+            fZ (~astropy.units.Quantity(~numpy.ndarray(float))):
+                Surface brightness of local zodiacal light in units of 1/arcsec2
+            JEZ (~astropy.units.Quantity(~numpy.ndarray(float))):
+                Intensity of exo-zodiacal light in units of ph/s/m2/arcsec2
+            dMag (~numpy.ndarray(float)):
+                Differences in magnitude between planets and their host star
+            WA (~astropy.units.Quantity(~numpy.ndarray(float))):
+                Working angles of the planets of interest in units of arcsec
+            mode (dict):
+                Selected observing mode
+            returnExtra (bool):
+                Optional flag, default False, set True to return additional rates for
+                validation
+            TK (:ref:`TimeKeeping`, optional):
+                Optional TimeKeeping object (default None), used to model detector
+                degradation effects where applicable.
+
+
+        Returns:
+            tuple:
+                C_p (~astropy.units.Quantity(~numpy.ndarray(float))):
+                    Planet signal electron count rate in units of 1/s
+                C_b (~astropy.units.Quantity(~numpy.ndarray(float))):
+                    Background noise electron count rate in units of 1/s
+                C_sp (~astropy.units.Quantity(~numpy.ndarray(float))):
+                    Residual speckle spatial structure (systematic error)
+                    in units of 1/s
+
+        """
+
+        # grab all count rates
+        C_star, C_p, C_sr, C_z, C_ez, C_dc, C_bl, Npix = self.Cp_Cb_Csp_helper(
+            TL, sInds, fZ, JEZ, dMag, WA, mode
+        )
+
+        # readout noise
+        inst = mode["inst"]
+        C_rn = Npix * inst["sread"] / inst["texp"]
+
+        # background signal rate
+        C_b = C_sr + C_z + C_ez + C_bl + C_dc + C_rn
+
+        # for characterization, Cb must include the planet
+        # C_sp = spatial structure to the speckle including post-processing contrast
+        # factor and stability factor
+        if not (mode["detectionMode"]):
+            C_b = C_b + C_p
+            C_sp = C_sr * TL.PostProcessing.ppFact_char(WA) * self.stabilityFact
+        else:
+            C_sp = C_sr * TL.PostProcessing.ppFact(WA) * self.stabilityFact
+
+        if returnExtra:
+            # organize components into an optional fourth result
+            C_extra = dict(
+                C_sr=C_sr.to("1/s"),
+                C_z=C_z.to("1/s"),
+                C_ez=C_ez.to("1/s"),
+                C_dc=C_dc.to("1/s"),
+                C_rn=C_rn.to("1/s"),
+                C_star=C_star.to("1/s"),
+                C_bl=C_bl.to("1/s"),
+                Npix=Npix,
+            )
+            return C_p.to("1/s"), C_b.to("1/s"), C_sp.to("1/s"), C_extra
+        else:
+            return C_p.to("1/s"), C_b.to("1/s"), C_sp.to("1/s")
