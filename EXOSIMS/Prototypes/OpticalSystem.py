@@ -795,7 +795,7 @@ class OpticalSystem(object):
 
             # first let's handle core mean intensity
             if "core_mean_intensity" in syst:
-                syst = self.get_core_mean_intensity(syst)
+                syst = self.get_core_mean_intensity(syst, "core_mean_intensity")
 
                 # ensure that platescale has also been set
                 assert syst["core_platescale"] is not None, (
@@ -1120,12 +1120,15 @@ class OpticalSystem(object):
     def get_core_mean_intensity(
         self,
         syst,
+        param_name="core_mean_intensity"
     ):
         """Load and process core_mean_intensity data
 
         Args:
             syst (dict):
                 Dictionary containing the parameters of one starlight suppression system
+            param_name (str):
+                Keyword name. Defaults to core_mean_intensity
 
         Returns:
             dict:
@@ -1133,14 +1136,18 @@ class OpticalSystem(object):
 
         """
 
-        param_name = "core_mean_intensity"
         fill = 1.0
-        assert param_name in syst, f"{param_name} not found in syst."
+        assert param_name in syst, f"{param_name} not found in system {syst['name']}."
+
         if isinstance(syst[param_name], str):
+            if ("csv_names" in syst) and (param_name in syst["csv_names"]):
+                fparam_name = syst["csv_names"][param_name]
+            else:
+                fparam_name = param_name
             dat, hdr = self.get_param_data(
                 syst[param_name],
                 left_col_name=syst["csv_angsep_colname"],
-                param_name=param_name,
+                param_name=fparam_name,
                 expected_ndim=2,
             )
             dat = dat.transpose()  # flip such that data is in rows
@@ -1487,10 +1494,14 @@ class OpticalSystem(object):
 
         assert param_name in syst, f"{param_name} not found in system {syst['name']}."
         if isinstance(syst[param_name], str):
+            if ("csv_names" in syst) and (param_name in syst["csv_names"]):
+                fparam_name = syst["csv_names"][param_name]
+            else:
+                fparam_name = param_name
             dat, hdr = self.get_param_data(
                 syst[param_name],
                 left_col_name=syst["csv_angsep_colname"],
-                param_name=param_name,
+                param_name= fparam_name,
                 expected_ndim=expected_ndim,
                 expected_first_dim=expected_first_dim,
             )
@@ -1810,10 +1821,28 @@ class OpticalSystem(object):
         else:
             # Need to get all of the headers and data, then associate them in the same
             # ndarray that the fits files would generate
-            table_vals = np.genfromtxt(pth, delimiter=",", skip_header=1)
-            hdr = np.genfromtxt(
-                pth, delimiter=",", skip_footer=len(table_vals), dtype=str
-            )
+            try:
+                table_vals = np.genfromtxt(
+                    pth, delimiter=",", skip_header=1, comments='"'
+                )
+                hdr = np.genfromtxt(
+                    pth, delimiter=",", skip_footer=len(table_vals), dtype=str, comments = '"'
+                )
+            except UnicodeDecodeError:
+                table_vals = np.genfromtxt(
+                    pth, delimiter=",", skip_header=1, comments='"', encoding="latin1"
+                )
+                hdr = np.genfromtxt(
+                    pth,
+                    delimiter=",",
+                    skip_footer=len(table_vals),
+                    dtype=str,
+                    comments='"',
+                    encoding="latin1",
+                )
+
+            # remove any rows that are all NaNs
+            table_vals = table_vals[~np.all(np.isnan(table_vals), axis=1)]
 
             if left_col_name is not None:
                 assert (
